@@ -1,0 +1,112 @@
+openapi: 3.0.3
+info:
+  title: QR Code Generator API
+  version: 1.0.0
+  description: Generate QR codes as SVG, PNG or JSON (module matrix). Custom size, margin, error correction and colors. Ready-made payloads for Wi-Fi, URL, email, phone, geo location and vCard. UTF-8 safe, up to 1000 bytes of data.
+servers:
+  - url: https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
+paths:
+  /qr:
+    get:
+      operationId: qrGet
+      summary: Generate a QR code
+      description: Returns the image (svg or png) or JSON with the module matrix, svg and base64 png.
+      parameters:
+        - { name: data, in: query, required: true, schema: { type: string }, example: "https://example.com" }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+        - { name: size, in: query, required: false, description: "pixels, 64-2048", schema: { type: integer, default: 300 } }
+        - { name: ecc, in: query, required: false, description: error correction level, schema: { type: string, enum: [L, M, Q, H], default: M } }
+        - { name: margin, in: query, required: false, description: "quiet zone in modules, 0-20", schema: { type: integer, default: 4 } }
+        - { name: fg, in: query, required: false, description: "foreground hex color", schema: { type: string, default: "000000" } }
+        - { name: bg, in: query, required: false, description: "background hex color", schema: { type: string, default: "ffffff" } }
+      responses:
+        "200": { description: QR code, content: { image/svg+xml: { schema: { type: string } }, image/png: { schema: { type: string, format: binary } }, application/json: { schema: { type: object } } } }
+        "400": { description: bad input }
+    post:
+      operationId: qrPost
+      summary: Generate a QR code (JSON body)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { data: { type: string }, format: { type: string }, size: { type: integer }, ecc: { type: string }, margin: { type: integer }, fg: { type: string }, bg: { type: string } }, required: [data] }, example: { data: "https://example.com", format: json } } } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/wifi:
+    get:
+      operationId: qrWifi
+      summary: Wi-Fi join QR code
+      parameters:
+        - { name: ssid, in: query, required: true, schema: { type: string }, example: HomeNet }
+        - { name: password, in: query, required: false, schema: { type: string }, example: secret123 }
+        - { name: security, in: query, required: false, schema: { type: string, enum: [WPA, WEP, nopass] } }
+        - { name: hidden, in: query, required: false, schema: { type: boolean } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+        - { name: size, in: query, required: false, schema: { type: integer, default: 300 } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/url:
+    get:
+      operationId: qrUrl
+      summary: URL QR code (http/https only)
+      parameters:
+        - { name: url, in: query, required: true, schema: { type: string }, example: "https://example.com" }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+        - { name: size, in: query, required: false, schema: { type: integer, default: 300 } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/email:
+    get:
+      operationId: qrEmail
+      summary: mailto QR code
+      parameters:
+        - { name: to, in: query, required: true, schema: { type: string }, example: "hi@example.com" }
+        - { name: subject, in: query, required: false, schema: { type: string } }
+        - { name: body, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/tel:
+    get:
+      operationId: qrTel
+      summary: Phone number QR code
+      parameters:
+        - { name: number, in: query, required: true, schema: { type: string }, example: "+15551234567" }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/geo:
+    get:
+      operationId: qrGeo
+      summary: Geo location QR code
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number }, example: 30.2672 }
+        - { name: lon, in: query, required: true, schema: { type: number }, example: -97.7431 }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/vcard:
+    get:
+      operationId: qrVcard
+      summary: Contact card (vCard 3.0) QR code
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string }, example: Ada Lovelace }
+        - { name: phone, in: query, required: false, schema: { type: string } }
+        - { name: email, in: query, required: false, schema: { type: string } }
+        - { name: org, in: query, required: false, schema: { type: string } }
+        - { name: title, in: query, required: false, schema: { type: string } }
+        - { name: url, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [svg, png, json], default: svg } }
+      responses:
+        "200": { description: QR code }
+        "400": { description: bad input }
+  /qr/batch:
+    post:
+      operationId: qrBatch
+      summary: Up to 10 QR codes in one call (JSON output)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { items: { type: array, maxItems: 10, items: { type: object, properties: { data: { type: string }, ecc: { type: string }, size: { type: integer }, fg: { type: string }, bg: { type: string } } } } }, required: [items] }, example: { items: [{ data: "https://example.com" }, { data: "hello", ecc: H }] } } } }
+      responses:
+        "200": { description: results array }
+        "400": { description: bad input }
